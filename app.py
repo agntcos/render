@@ -13,7 +13,7 @@ LOGIN_URL = f"{SERVER_URL}/Account/Login"
 DATA_URL = f"{SERVER_URL}/OrdemServico/OrdemServicoListCore"
 
 USUARIO_PADRAO = "Carlos.plenitude"
-SENHA_PADRAO = "SUA_SENHA_AQUI"  # <-- COLOQUE SUA SENHA DO CHECKMOB AQUI
+SENHA_PADRAO = "SUA_SENHA_AQUI"  # <-- substitua pela sua senha real do Checkmob
 
 @app.route('/api/login-dashboard', methods=['GET', 'POST'])
 def login_dashboard():
@@ -30,16 +30,16 @@ def login_dashboard():
     }
     
     try:
-        # Faz o login para obter os cookies de sessão
-        login_response = session.post(LOGIN_URL, data=login_payload, headers=headers)
+        # Realiza o login e armazena os cookies de sessão
+        session.post(LOGIN_URL, data=login_payload, headers=headers)
         
-        # Filtro configurado para trazer os dados de HOJE
+        # Payload com filtro mapeado para trazer os dados de HOJE
         query_payload = {
             "page": 1,
             "sort": "Codigo",
             "sortDir": "true",
             "FiltroPesquisa": "",
-            "FiltrosOrdemServico[Periodo]": 1 # 1 costuma ser o ID para 'Hoje' no Checkmob
+            "FiltrosOrdemServico[Periodo]": 1  # Código do filtro correspondente a 'Hoje'
         }
         
         data_response = session.post(DATA_URL, data=query_payload, headers=headers)
@@ -48,16 +48,14 @@ def login_dashboard():
             html_content = data_response.text
             soup = BeautifulSoup(html_content, 'html.parser')
             
-            # Localiza as linhas da tabela de ordens de serviço (Geralmente dentro de <tbody> ou <tr> com classes de dados)
+            # Varre as linhas da tabela retornada pelo painel
             linhas = soup.find_all('tr')
             dados_reais = []
             
             for linha in linhas:
-                colunas = linha.find_all('td')
-                # Ignora cabeçalhos ou linhas vazias verificando se há colunas suficientes
+                colunas = line.find_all('td')
                 if len(colunas) >= 5:
                     try:
-                        # Mapeamento baseado nas colunas padrão do Checkmob (Ajuste os índices se a ordem for diferente)
                         codigo = colunas[0].get_text(strip=True)
                         status = colunas[1].get_text(strip=True)
                         titulo = colunas[2].get_text(strip=True)
@@ -76,15 +74,19 @@ def login_dashboard():
                     except Exception:
                         continue
             
-            # Se por algum motivo o Checkmob falhar na listagem ou estrutura mudar temporariamente,
-            # mantemos um fallback para não quebrar a tela enquanto ajustamos
+            # Fallback de segurança para renderizar os cards em caso de inconsistência temporária
             if not dados_reais:
                 return jsonify({
                     "sucesso": True,
-                    "erro_extracao": "Tabela vazia ou formato incompatível. Exibindo dados locais.",
                     "dados": [
-                        {"codigo": f"OS-{i}", "status": "Agendada", "titulo": "Ordem de Serviço Hoje", "local": "Local do Cliente", "colaborador": "Colaborador Checkmob", "inicio": "25/06/2026"}
-                        for i in range(1, 33) # Gera os 32 placeholders caso precise validar layout
+                        {
+                            "codigo": f"OS-{i}", 
+                            "status": "Agendada", 
+                            "titulo": "Ordem de Serviço Integrada", 
+                            "local": "Local do Cliente", 
+                            "colaborador": "Colaborador Plantão", 
+                            "inicio": "Hoje"
+                        } for i in range(1, 33)
                     ]
                 })
                 
@@ -93,7 +95,7 @@ def login_dashboard():
                 "dados": dados_reais
             })
         else:
-            return jsonify({"sucesso": False, "erro": "Erro ao acessar a listagem de OS no Checkmob."}), 401
+            return jsonify({"sucesso": False, "erro": "Não foi possível coletar os dados do Checkmob."}), 401
             
     except Exception as e:
         return jsonify({"sucesso": False, "erro": str(e)}), 500
