@@ -1,38 +1,17 @@
 # backend/app.py
+import os
+# Configuração crucial para o Render: diz ao Playwright para usar os navegadores padrão do contêiner Linux
+os.environ["PLAYWRIGHT_BROWSERS_PATH"] = "0"
+
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-import os
-os.environ["PLAYWRIGHT_BROWSERS_PATH"] = "0" # Garante o uso dos navegadores nativos do container
+# Importa a função que realiza o login e a raspagem de dados do arquivo scraper.py
+from scraper import raspar_dados_painel 
 
 app = Flask(__name__)
-CORS(app)  # Permite que o frontend acesse o backend
 
-def extrair_dados_checkmob(usuario, senha):
-    # TODO: Aqui entrará a lógica do Playwright/Selenium para:
-    # 1. Ir até https://app.checkmob.com/OrdemServico/PainelDeControle
-    # 2. Preencher usuário e senha e clicar em Entrar
-    # 3. Ler a tabela que você enviou na foto
-    
-    # Simulação de dados retornados em tempo real com base na sua imagem:
-    dados_simulados = [
-        {
-            "codigo": "29166",
-            "status": "Em execução",
-            "titulo": "HUGO D A M - RESERVA SJC11368269",
-            "local": "HOSPITAL BENE SÃO JOSÉ",
-            "colaborador": "FERNANDA REGINA DE SOUZA",
-            "inicio": "25/06/2026 06:00"
-        },
-        {
-            "codigo": "29168",
-            "status": "Finalizada",
-            "titulo": "CONCEICAO MARIA SANTOS SOUZA",
-            "local": "HOSPITAL LEFORTE MORUMBI",
-            "colaborador": "LUCAS HENRIQUE BRITO",
-            "inicio": "25/06/2026 06:00"
-        }
-    ]
-    return dados_simulados
+# Permite que o seu arquivo index.html (frontend local) se comunique de forma segura com este servidor na nuvem
+CORS(app)
 
 @app.route('/api/login-dashboard', methods=['POST'])
 def login_dashboard():
@@ -40,15 +19,28 @@ def login_dashboard():
     usuario = data.get('usuario')
     senha = data.get('senha')
     
+    # Validação inicial para garantir que os campos não foram enviados vazios
     if not usuario or not senha:
         return jsonify({"erro": "Usuário e senha são obrigatórios"}), 400
         
     try:
-        # Executa a captura dos dados
-        dados = extrair_dados_checkmob(usuario, senha)
-        return jsonify({"sucesso": True, "dados": dados})
+        # Executa a automação do Playwright passando as credenciais digitadas no painel
+        dados_reais = raspar_dados_painel(usuario, senha)
+        
+        # Retorna os dados organizados em formato JSON para o Frontend construir os cards
+        return jsonify({
+            "sucesso": True, 
+            "dados": dados_reais
+        })
+        
     except Exception as e:
-        return jsonify({"sucesso": False, "erro": str(e)}), 500
+        print(f"Erro processado na requisição: {str(e)}")
+        return jsonify({
+            "sucesso": False, 
+            "erro": "Falha na autenticação ou leitura dos dados. Verifique suas credenciais."
+        }), 500
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+    # O Render define a porta automaticamente através da variável de ambiente PORT. Se não encontrar, usa a 10000.
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host='0.0.0.0', port=port)
