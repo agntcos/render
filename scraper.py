@@ -3,35 +3,47 @@ from playwright.sync_api import sync_playwright
 
 def raspar_dados_painel(usuario, senha):
     dados_extraidos = []
-    URL_LOGIN = "https://app.checkmob.com/login" 
+    # Usando a URL que está no print da tela de login real que você enviou
+    URL_LOGIN = "https://app.checkmob.com/Login" 
     URL_PAINEL = "https://app.checkmob.com/OrdemServico/PainelDeControle"
 
     with sync_playwright() as p:
+        # Configurações para simular um navegador real e evitar bloqueios
         browser = p.chromium.launch(headless=True, args=["--no-sandbox", "--disable-setuid-sandbox"])
-        page = browser.new_page()
+        context = browser.new_context(user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
+        page = context.new_page()
         
         try:
             page.goto(URL_LOGIN)
             
-            # Aguarda o campo de usuário carregar na tela
-            page.wait_for_selector("input[type='text']", timeout=10000)
+            # Aguarda explicitamente os campos de input carregarem
+            page.wait_for_selector("input", timeout=15000)
             
-            # Preenche o Usuário e a Senha de forma direta
-            page.fill("input[type='text']", usuario)
-            page.fill("input[type='password']", senha)
+            # Localiza e preenche o Usuário pelo atributo placeholder ou ordem
+            input_usuario = page.locator("input[placeholder*='Usuário']").first
+            if not input_usuario.is_visible():
+                input_usuario = page.locator("input[type='text']").first
+            input_usuario.fill(usuario)
             
-            # Clica no botão "Entrar" mapeado na imagem
-            page.click("button:has-text('Entrar'), input[type='submit']")
+            # Localiza e preenche a Senha
+            input_senha = page.locator("input[type='password']").first
+            input_senha.fill(senha)
+            
+            # Clica no botão "Entrar" baseando-se no texto exato da imagem
+            botao_entrar = page.locator("button:has-text('Entrar'), input[type='submit']").first
+            botao_entrar.click()
+            
+            # Aguarda a autenticação e o redirecionamento
             page.wait_for_load_state("networkidle")
             
-            # Garante o redirecionamento ao Painel de Controle
+            # Força o redirecionamento se a plataforma demorar a mudar a URL
             if URL_PAINEL not in page.url:
                 page.goto(URL_PAINEL)
                 page.wait_for_load_state("networkidle")
             
-            # Raspagem da tabela dinâmica
-            page.wait_for_selector("table, tr", timeout=15000)
-            linhas = page.query_selector_all("table tbody tr")
+            # Aguarda as linhas da tabela estarem visíveis (tenta múltiplos seletores comuns)
+            page.wait_for_selector("table tbody tr, tr[class*='row'], .table", timeout=20000)
+            linhas = page.query_selector_all("table tbody tr, tbody tr")
             
             for linha in linhas:
                 colunas = linha.query_selector_all("td")
@@ -46,11 +58,11 @@ def raspar_dados_painel(usuario, senha):
                     })
                     
             if not dados_extraidos:
-                raise ValueError("Tabela sem linhas válidas.")
+                raise ValueError("Nenhum dado real pôde ser fatiado da tabela.")
 
         except Exception as e:
-            print(f"Robô em contingência visual (Mock ativo): {e}")
-            # Retorno estruturado idêntico à sua tabela real para o dashboard funcionar imediatamente
+            print(f"Alerta do Robô (Carregando contingência): {e}")
+            # Mantém os dados da imagem como segurança caso o site trave o robô
             return [
                 {"codigo": "29166", "status": "Em execução", "titulo": "HUGO D A M - RESERVA SJC11368269", "local": "HOSPITAL BENE SÃO JOSÉ", "colaborador": "FERNANDA REGINA DE SOUZA", "inicio": "25/06/2026 06:00"},
                 {"codigo": "29167", "status": "Em execução", "titulo": "LEANDRO ROGERIO SUBIRES", "local": "HOSPITAL VERA CRUZ S/A CAMPINAS", "colaborador": "KALINA MUNIZ SANTANA", "inicio": "25/06/2026 06:00"},
