@@ -1,7 +1,8 @@
 # backend/app.py
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-import time
+import os
+os.environ["PLAYWRIGHT_BROWSERS_PATH"] = "0" # Garante o uso dos navegadores nativos do container
 
 app = Flask(__name__)
 CORS(app)  # Permite que o frontend acesse o backend
