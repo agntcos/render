@@ -14,7 +14,7 @@ DATA_URL = f"{SERVER_URL}/OrdemServico/OrdemServicoListCore"
 
 # 🔐 Credenciais fixas configuradas para o piloto automático
 USUARIO_PADRAO = "Carlos.plenitude"
-SENHA_PADRAO = "SUA_SENHA_AQUI"  # <-- Substitua pela sua senha real do Checkmob
+SENHA_PADRAO = "Plenitude@2025"  # <-- Substitua pela sua senha real do Checkmob
 
 @app.route('/api/login-dashboard', methods=['GET', 'POST'])
 def login_dashboard():
