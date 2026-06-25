@@ -14,7 +14,7 @@ DATA_URL = f"{SERVER_URL}/OrdemServico/OrdemServicoListCore"
 
 # 🔐 Credenciais fixas configuradas para o piloto automático
 USUARIO_PADRAO = "Carlos.plenitude"
-SENHA_PADRAO = "SUA_SENHA_AQUI"  # <-- Certifique-se de colocar sua senha real aqui
+SENHA_PADRAO = "Plenitude@2025"  # <-- Certifique-se de colocar sua senha real aqui
 
 @app.route('/api/login-dashboard', methods=['GET', 'POST'])
 def login_dashboard():
