@@ -1,0 +1,18 @@
+# Usa a imagem oficial do Playwright com Python e navegadores inclusos
+FROM mcr.microsoft.com/playwright/python:v1.44.0-jammy
+
+# Define a pasta de trabalho dentro do servidor
+WORKDIR /app
+
+# Copia os arquivos de dependências e instala
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copia o restante do código do backend
+COPY . .
+
+# Expõe a porta que o Render vai usar (o Render define isso automaticamente na variável PORT)
+EXPOSE 10000
+
+# Comando para rodar o servidor Flask usando Gunicorn (próprio para nuvem)
+CMD ["gunicorn", "-b", "0.0.0.0:10000", "app:app"]
