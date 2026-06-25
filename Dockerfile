@@ -1,18 +1,20 @@
-# Usa a imagem oficial do Playwright com Python e navegadores inclusos
-FROM mcr.microsoft.com/playwright/python:v1.44.0-jammy
+# Usa uma imagem oficial do Python super leve e otimizada para produção
+FROM python:3.10-slim
 
-# Define a pasta de trabalho dentro do servidor
+# Define o diretório de trabalho dentro do contêiner Linux do Render
 WORKDIR /app
 
-# Copia os arquivos de dependências e instala
+# Copia o arquivo de dependências para o contêiner
 COPY requirements.txt .
+
+# Instala as bibliotecas Python sem salvar cache desnecessário (economiza memória)
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copia o restante do código do backend
+# Copia todo o restante do código da pasta backend (app.py, etc.) para dentro do contêiner
 COPY . .
 
-# Expõe a porta que o Render vai usar (o Render define isso automaticamente na variável PORT)
+# Expõe a porta padrão que o Flask vai escutar
 EXPOSE 10000
 
-# Comando para rodar o servidor Flask usando Gunicorn (próprio para nuvem)
-CMD ["gunicorn", "-b", "0.0.0.0:10000", "app:app"]
+# Comando definitivo que o Gunicorn usa para rodar o servidor Flask em produção
+CMD ["gunicorn", "--bind", "0.0.0.0:10000", "app:app"]
